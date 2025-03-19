@@ -1,0 +1,55 @@
+package frc.robot.subsystems;
+
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.SubsystemBase;
+
+import org.photonvision.PhotonCamera;
+import org.photonvision.targeting.PhotonPipelineResult;
+import org.photonvision.targeting.PhotonTrackedTarget;
+import edu.wpi.first.math.geometry.Transform2d;
+import edu.wpi.first.math.geometry.Transform3d;
+import edu.wpi.first.wpilibj2.command.SubsystemBase;
+
+public class Vision extends SubsystemBase {
+    private final PhotonCamera camera;
+
+    public Vision(String cameraStr) {
+        // Constructor code, if necessary
+        camera = new PhotonCamera(cameraStr);
+    }
+
+    public PhotonTrackedTarget getBestTarget() {
+        PhotonPipelineResult result = camera.getLatestResult();
+        if (result.hasTargets()) {
+            return result.getBestTarget();
+        }
+        return null;
+    }
+
+    public Transform3d getTargetTransform() {
+        PhotonTrackedTarget target = getBestTarget();
+        if (target != null) {
+            return target.getBestCameraToTarget();
+        }
+        return null;
+    }
+
+    public double getTargetYaw() {
+        PhotonTrackedTarget target = getBestTarget();
+        return (target != null) ? target.getYaw() : 0.0;
+    }
+
+    public double getTargetDistance() {
+        PhotonTrackedTarget target = getBestTarget();
+        return (target != null) ? target.getBestCameraToTarget().getX() : -1;
+    }
+
+    public int getTargetID() {
+        PhotonTrackedTarget target = getBestTarget();
+        return (target != null) ? target.getFiducialId(): -1;
+    }
+
+    public boolean targetFound() {
+        return (getBestTarget() != null) ? true: false;
+    }
+}
