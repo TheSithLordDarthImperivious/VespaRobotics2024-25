@@ -26,6 +26,7 @@ public class FollowAprilTagCommand extends Command {
     private double MaxAngularRate = RotationsPerSecond.of(0.75).in(RadiansPerSecond); // 3/4 of a rotation per second max angular velocity
 
     public FollowAprilTagCommand(Vision visionSubsystem, CommandSwerveDrivetrain drivetrain) {
+        System.out.println("Activated.");
         this.visionSubsystem = visionSubsystem;
         this.drivetrain = drivetrain;
         addRequirements(visionSubsystem, drivetrain);
@@ -34,6 +35,7 @@ public class FollowAprilTagCommand extends Command {
     @Override
     public void execute() {
         if (visionSubsystem.targetFound()) {
+            System.out.println("Target found, trying to see stuff...");
             // Get rotation3d and quaternion, prepare for angle/yaw
             Quaternion swerveQuaternion = drivetrain.getRotation3d().getQuaternion();
 
@@ -58,7 +60,10 @@ public class FollowAprilTagCommand extends Command {
             double changeInRotation = -targetYaw * (Math.PI / 180) - currentYaw; // Scale yaw to rotation (negative to correct direction), and convert to radians
 
             // Don't forget to normalize to -pi to pi radians
-            final double changeInRotationNormalized = ((changeInRotation + Math.PI) % 2*Math.PI) - Math.PI;
+            changeInRotation = ((changeInRotation + Math.PI) % 2*Math.PI) - Math.PI;
+
+            // Convert to radians per second unit
+            double rotSpeed = RotationsPerSecond.of(changeInRotation).in(RadiansPerSecond);
 
             // Timer for one second
             rotationTimer.reset();
@@ -70,7 +75,7 @@ public class FollowAprilTagCommand extends Command {
                     new SwerveRequest.FieldCentric()
                         .withVelocityX(forwardSpeed) // Move forward with forward speed
                         .withVelocityY(0) // No lateral movement
-                        .withRotationalRate(changeInRotationNormalized) // Rotate to align with the tag (radians per second)
+                        .withRotationalRate(Math.min(rotSpeed,MaxAngularRate)) // Rotate to align with the tag (radians per second)
                 );
             } else {
                 drivetrain.applyRequest(() -> 
@@ -78,22 +83,24 @@ public class FollowAprilTagCommand extends Command {
                         .withVelocityX(0) // Move forward with forward speed
                         .withVelocityY(0) // No lateral movement
                         .withRotationalRate(0) // Rotate to align with the tag (radians per second)
-                );      
+                );
             }
             // Update shuffleboard values
-            shuffleboardSubsystem.updateSwerveReadings(forwardSpeed,0,changeInRotationNormalized);
+            shuffleboardSubsystem.updateSwerveReadings(forwardSpeed,0,rotSpeed);
             shuffleboardSubsystem.updateAprilTagReadings(visionSubsystem.getTargetID(), targetDistance, targetYaw, true);
         }
     }
 
     @Override
     public boolean isFinished() {
+        System.out.println("Finished...");
         double targetDistance = visionSubsystem.getTargetDistance();
         return targetDistance > 0 && targetDistance <= TARGET_DISTANCE_METERS;
     }
 
     @Override
     public void end(boolean interrupted) {
+        System.out.println("Somehow, it ended");
         drivetrain.applyRequest(() -> new SwerveRequest.SwerveDriveBrake()); // Stop the robot
     }
 }
