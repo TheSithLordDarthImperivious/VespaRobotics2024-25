@@ -21,6 +21,7 @@ public class Vision extends SubsystemBase {
     public PhotonTrackedTarget getBestTarget() {
         PhotonPipelineResult result = camera.getLatestResult();
         if (result.hasTargets()) {
+            System.out.println("There is a target")
             return result.getBestTarget();
         }
         return null;
@@ -50,6 +51,6 @@ public class Vision extends SubsystemBase {
     }
 
     public boolean targetFound() {
-        return (getBestTarget() != null) ? true: false;
+        return (getBestTarget() != null);
     }
 }
